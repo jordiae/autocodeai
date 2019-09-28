@@ -13,42 +13,40 @@ SCRAPED_REPOS_PATH = os.path.join('..', '..', 'data', 'scraped_repos')
 CORPUS_PATH = os.path.join('..', '..', 'data', 'corpora')
 
 
+def write_set(set_files, set_name, corpus_path):
+    with open(os.path.join(corpus_path, set_name +'.txt'), 'w') as corpus:
+        for filepath in set_files:
+            filename, file_extension = os.path.splitext(ntpath.basename(filepath))
+            content = ' == ' + filename + ' ' + file_extension + ' ==\n'
+            print('Writing', filepath)
+            content += open(filepath, 'r').read()
+            if file_extension in ['html', 'htm', 'xhtml', 'HTML', 'HTM', 'XHTML']:
+                new_content = []
+                for line in content.splitlines():
+                    for token in line.split():
+                        try:
+                            if token.startswith('src="data:image/png'):
+                                continue
+                            else:
+                                new_content.append(line+'\n')
+                        except BaseException as e:
+                            continue
+                content = ''.join(new_content)
+            content = ''.join([s for s in content.splitlines(True) if s.strip()])  # remove whitespace/tab only lines
+            content = os.linesep.join([s for s in content.splitlines() if s])  # remove empty lines
+            content += '\n\n'
+            corpus.write(content)
+
+
 def write_corpus(corpus_files, corpus_path, corpus_name, stats, ndocs, ndevtest):
     os.system('mkdir -p ' + corpus_path)
     with open(os.path.join(corpus_path, 'stats.log'), 'w') as f:
         f.writelines(stats)
     random.shuffle(corpus_files)
     train, dev, test = corpus_files[0:-ndevtest*2], corpus_files[-ndevtest*2:-ndevtest], corpus_files[-ndevtest:]
-    with open(os.path.join(corpus_path, 'train.txt'), 'a') as corpus:
-        for filepath in train:
-            filename, file_extension = os.path.splitext(ntpath.basename(filepath))
-            content = ' == ' + filename + ' ' + file_extension + ' ==\n'
-            print('Writing', filepath)
-            content += open(filepath, 'r').read()
-            content = ''.join([s for s in content.splitlines(True) if s.strip()])  # remove whitespace/tab only lines
-            content = os.linesep.join([s for s in content.splitlines() if s])  # remove empty lines
-            content += '\n\n'
-            corpus.write(content)
-    with open(os.path.join(corpus_path, 'valid.txt'), 'a') as corpus:
-        for filepath in dev:
-            filename, file_extension = os.path.splitext(ntpath.basename(filepath))
-            content = ' == ' + filename + ' ' + file_extension + ' ==\n'
-            print('Writing', filepath)
-            content += open(filepath, 'r').read()
-            content = ''.join([s for s in content.splitlines(True) if s.strip()])  # remove whitespace/tab only lines
-            content = os.linesep.join([s for s in content.splitlines() if s])  # remove empty lines
-            content += '\n\n'
-            corpus.write(content)
-    with open(os.path.join(corpus_path, 'test.txt'), 'a') as corpus:
-        for filepath in test:
-            filename, file_extension = os.path.splitext(ntpath.basename(filepath))
-            content = ' == ' + filename + ' ' + file_extension + ' ==\n'
-            print('Writing', filepath)
-            content += open(filepath, 'r').read()
-            content = ''.join([s for s in content.splitlines(True) if s.strip()])  # remove whitespace/tab only lines
-            content = os.linesep.join([s for s in content.splitlines() if s])  # remove empty lines
-            content += '\n\n'
-            corpus.write(content)
+    write_set(train, 'train', corpus_path)
+    write_set(dev, 'valid', corpus_path)
+    write_set(test, 'test', corpus_path)
 
 
 def main():
@@ -81,7 +79,7 @@ def main():
                     language = None
                     try:
                         language = line.split()[1]
-                        if language == 'Pickle' or language == 'SVG' or language == 'Text':
+                        if language in ['Pickle', 'SVG', 'Text', 'INI', 'Markdown', 'CSV', 'Ignore', 'reStructuredText', 'Jupyter']:
                             break
                             #print(output_lines, dir_name)
                             #input()
